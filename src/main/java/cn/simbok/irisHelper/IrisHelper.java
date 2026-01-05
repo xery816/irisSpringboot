@@ -16,13 +16,18 @@ import java.util.Objects;
 public class IrisHelper {
     // Delayed library loading flag
     private static boolean libraryLoaded = false;
-    
+
     // Delayed load JNI library to avoid startup crash
-    static synchronized void loadLibrary() {
+    private static synchronized void loadLibrary() {
         if (!libraryLoaded) {
             System.loadLibrary("irisenginehelper");
             libraryLoaded = true;
         }
+    }
+
+    // Constructor automatically loads library
+    public IrisHelper() {
+        loadLibrary();
     }
 
     private final String TAG = IrisHelper.class.getSimpleName();
@@ -87,6 +92,10 @@ public class IrisHelper {
         if (mInvoker != null) {
             return mInvoker.onPreviewCallback(frame, width, height);
         } else {
+            if (_cbPreviewFunc == null) {
+                System.out.println("[IrisHelper] WARNING: _cbPreviewFunc is null!");
+                return -1;
+            }
             return _cbPreviewFunc.invoke(frame, width, height);
         }
     }
@@ -378,8 +387,14 @@ public class IrisHelper {
      * @return 0 success, other fail
      */
     public int setPreview(@Nullable Function3<byte[], Integer, Integer, Integer> cbFunc) {
-        if (mInvoker == null) _cbPreviewFunc = cbFunc;
-        return IrisEngineSetPreview(PREVIEWMODE_WHOLE, 2, 0, 0, 0, 0);
+        System.out.println("[IrisHelper] setPreview called. mInvoker: " + (mInvoker == null ? "null" : "not null") + ", cbFunc: " + (cbFunc == null ? "null" : "not null"));
+        if (mInvoker == null) {
+            _cbPreviewFunc = cbFunc;
+            System.out.println("[IrisHelper] _cbPreviewFunc set to cbFunc");
+        }
+        int result = IrisEngineSetPreview(PREVIEWMODE_WHOLE, 2, 0, 0, 0, 0);
+        System.out.println("[IrisHelper] IrisEngineSetPreview result: " + result);
+        return result;
     }
 
     /**

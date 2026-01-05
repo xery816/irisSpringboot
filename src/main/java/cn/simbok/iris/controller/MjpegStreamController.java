@@ -1,40 +1,92 @@
 package cn.simbok.iris.controller;
 
-import org.springframework.http.MediaType;
+import cn.simbok.iris.service.IrisService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 
 @RestController
 @RequestMapping("/api/stream")
 public class MjpegStreamController {
     
+    private static final Logger log = LoggerFactory.getLogger(MjpegStreamController.class);
+    
+    @Autowired
+    private IrisService irisService;
+    
     @GetMapping(value = "/mjpeg", produces = "multipart/x-mixed-replace;boundary=frame")
-    public void streamMjpeg(HttpServletResponse response) throws Exception {
+    public void streamMjpeg(HttpServletResponse response) {
+        log.info("MJPEG stream started");
         response.setContentType("multipart/x-mixed-replace;boundary=frame");
-        OutputStream outputStream = response.getOutputStream();
         
-        try {
+        try (OutputStream outputStream = response.getOutputStream()) {
+            int frameCount = 0;
+            int noFrameCount = 0;
+            
             while (true) {
-                byte[] frameData = new byte[0];
+                byte[] frameData = irisService.getLatestPreviewFrame();
+                int width = irisService.getPreviewWidth();
+                int height = irisService.getPreviewHeight();
                 
-                if (frameData.length > 0) {
-                    outputStream.write(("--frame\r\n").getBytes());
-                    outputStream.write(("Content-Type: image/jpeg\r\n\r\n").getBytes());
-                    outputStream.write(frameData);
-                    outputStream.write("\r\n".getBytes());
-                    outputStream.flush();
+                if (frameData == null || width == 0 || height == 0) {
+                    noFrameCount++;
+                    if (noFrameCount % 10 == 0) {
+                        log.warn("No frame data available after {} attempts. Width: {}, Height: {}, Data: {}", 
+                                noFrameCount, width, height, frameData != null ? "not null" : "null");
+                    }
+                    Thread.sleep(100);
+                    continue;
                 }
                 
-                Thread.sleep(33);
+                frameCount++;
+                if (frameCount == 1 || frameCount % 30 == 0) {
+                    log.info("Streaming frame #{}: {}x{}, size: {}", frameCount, width, height, frameData.length);
+                }
+                
+                if (frameData != null && width > 0 && height > 0) {
+                    try {
+                        // Convert BGRA to RGB BufferedImage
+                        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+                        byte[] imageData = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+                        
+                        // BGRA to BGR conversion
+                        for (int i = 0; i < width * height; i++) {
+                            imageData[i * 3] = frameData[i * 4];     // B
+                            imageData[i * 3 + 1] = frameData[i * 4 + 1]; // G
+                            imageData[i * 3 + 2] = frameData[i * 4 + 2]; // R
+                        }
+                        
+                        // Convert to JPEG
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        ImageIO.write(image, "jpg", baos);
+                        byte[] jpegData = baos.toByteArray();
+                        
+                        // Send MJPEG frame
+                        outputStream.write(("--frame\r\n").getBytes());
+                        outputStream.write(("Content-Type: image/jpeg\r\n").getBytes());
+                        outputStream.write(("Content-Length: " + jpegData.length + "\r\n\r\n").getBytes());
+                        outputStream.write(jpegData);
+                        outputStream.write("\r\n".getBytes());
+                        outputStream.flush();
+                    } catch (Exception e) {
+                        log.error("Error converting frame", e);
+                    }
+                }
+                
+                Thread.sleep(33); // ~30 FPS
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            outputStream.close();
+            log.error("MJPEG stream error", e);
         }
     }
 }

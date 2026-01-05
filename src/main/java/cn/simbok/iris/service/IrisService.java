@@ -69,12 +69,34 @@ public class IrisService {
                 }
                 
                 // 启动预览
-                irisHelper.setPreview((frame, width, height) -> {
+                log.info("Setting up preview callback...");
+                int previewResult = irisHelper.setPreview((frame, width, height) -> {
+                    if (latestPreviewFrame == null) {
+                        log.info("First preview frame received: {}x{}, size: {}", width, height, frame != null ? frame.length : 0);
+                    }
                     latestPreviewFrame = frame;
                     previewWidth = width;
                     previewHeight = height;
                     return 0;
                 });
+                log.info("Preview setup result: {} - Callback registered", previewResult);
+                
+                // 等待第一帧
+                Thread.sleep(500);
+                if (latestPreviewFrame == null) {
+                    log.warn("No preview frame received after 500ms - trying startPurePreview");
+                    int purePreviewResult = irisHelper.startPurePreview();
+                    log.info("startPurePreview result: {}", purePreviewResult);
+                    Thread.sleep(500);
+                    
+                    if (latestPreviewFrame == null) {
+                        log.warn("Still no preview frame after startPurePreview");
+                    } else {
+                        log.info("Preview is working after startPurePreview - frame size: {}x{}", previewWidth, previewHeight);
+                    }
+                } else {
+                    log.info("Preview is working - frame size: {}x{}", previewWidth, previewHeight);
+                }
                 
                 initialized = true;
                 log.info("Device initialized successfully");
