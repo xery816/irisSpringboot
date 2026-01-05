@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: iris-recognition-service
+
+iris:
+  # 配置文件路径（相对于resources）
+  config:
+    common: config/param_common.cfg
+    device: config/param_dev.cfg
+  
+  # JNI库路径配置
+  library:
+    windows:
+      path: F:\iris_java\Windows SDK_3.23.6_x64_Eng\win_pidsdk_3.23.6_x64\bin
+    linux:
+      path: /opt/iris_sdk/lib
+
+logging:
+  level:
+    cn.simbok: DEBUG
+
