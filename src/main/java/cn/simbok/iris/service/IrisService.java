@@ -81,22 +81,8 @@ public class IrisService {
                 });
                 log.info("Preview setup result: {} - Callback registered", previewResult);
                 
-                // 等待第一帧
-                Thread.sleep(500);
-                if (latestPreviewFrame == null) {
-                    log.warn("No preview frame received after 500ms - trying startPurePreview");
-                    int purePreviewResult = irisHelper.startPurePreview();
-                    log.info("startPurePreview result: {}", purePreviewResult);
-                    Thread.sleep(500);
-                    
-                    if (latestPreviewFrame == null) {
-                        log.warn("Still no preview frame after startPurePreview");
-                    } else {
-                        log.info("Preview is working after startPurePreview - frame size: {}x{}", previewWidth, previewHeight);
-                    }
-                } else {
-                    log.info("Preview is working - frame size: {}x{}", previewWidth, previewHeight);
-                }
+                // 等待第一帧（注意：预览回调只在enroll/identify等操作时才会触发）
+                log.info("Preview callback registered. Preview frames will be available during operations.");
                 
                 initialized = true;
                 log.info("Device initialized successfully");

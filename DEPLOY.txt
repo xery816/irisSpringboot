@@ -1,68 +1,384 @@
-部署说明
-========
+====================================================================
+        虹膜识别系统 Spring Boot 服务部署文档
+====================================================================
 
-重要：本项目已配置为独立部署，详见 STANDALONE.txt
+版本: 1.0.0
+更新日期: 2026-01-05
 
-一、准备所有依赖文件（首次必须）
--------------------------------
-运行: copy-all-dependencies.bat
+====================================================================
+一、前置要求
+====================================================================
 
-将自动复制：
-- 19个DLL文件到 native-libs/windows-x64/
-- 44个音频文件到 native-libs/windows-x64/sound/
-- Linux库文件到 native-libs/linux-x64/
-- 创建temp工作目录
+1. JDK 1.8 或更高版本
+   - 下载地址: https://www.oracle.com/java/technologies/javase-downloads.html
+   - 验证: java -version
 
+2. 虹膜识别设备
+   - 确保设备通过USB连接到计算机
+   - Windows需要安装设备驱动程序
 
-二、Windows部署
---------------
-1. 复制JNI库（步骤一）
-2. 确保SDK目录存在：F:\iris_java\Windows SDK_3.23.6_x64_Eng\win_pidsdk_3.23.6_x64\bin
-   （包含所有dll文件：libirisengine.dll、EyeID.dll等）
-3. 运行：build-and-run.bat
-   或：mvn spring-boot:run
+3. Maven (仅源码部署需要)
+   - 下载地址: https://maven.apache.org/download.cgi
+   - 验证: mvn -version
 
+====================================================================
+二、部署文件清单
+====================================================================
 
-三、Linux部署
--------------
-1. 部署SDK库文件到 /opt/iris_sdk/lib/
-   需要的文件：
-   - libirisengine.so
-   - libirisenginehelper.so
-   - 其他依赖so文件
+必需文件：
+  ├── iris-springboot-1.0.0.jar         (Spring Boot应用)
+  ├── native-libs/                       (原生库目录)
+  │   ├── windows-x64/                   (Windows 64位)
+  │   │   ├── *.dll                      (所有DLL文件，约20-30个)
+  │   │   ├── param_common.cfg           (通用配置)
+  │   │   ├── param_dev.cfg              (设备配置)
+  │   │   ├── sound/                     (音频文件目录)
+  │   │   └── temp/                      (临时文件和数据存储)
+  │   │       └── data/eyedata/          (用户虹膜数据)
+  │   └── linux-x64/                     (Linux 64位)
+  │       ├── *.so                       (所有SO文件)
+  │       ├── param_common.cfg
+  │       ├── param_dev.cfg
+  │       ├── sound/
+  │       └── temp/
+  ├── run-windows.bat                    (Windows启动脚本)
+  ├── run-linux.sh                       (Linux启动脚本)
+  └── test-client.html                   (测试客户端)
 
-2. 设置权限：
-   chmod +x /opt/iris_sdk/lib/*.so
+====================================================================
+三、Windows 部署步骤
+====================================================================
 
-3. 更新 application.yml 中的路径
-
-4. 运行：
-   mvn spring-boot:run
-   或打包后运行：
-   java -Djava.library.path=/opt/iris_sdk/lib -jar iris-springboot-1.0.0.jar
-
-
-四、打包部署
+3.1 准备工作
 -----------
-1. 打包：mvn clean package
-2. 将target/iris-springboot-1.0.0.jar复制到目标服务器
-3. 确保目标服务器有JNI库
-4. 运行：
-   Windows: java -Djava.library.path="SDK路径" -jar iris-springboot-1.0.0.jar
-   Linux:   java -Djava.library.path=/opt/iris_sdk/lib -jar iris-springboot-1.0.0.jar
+1. 创建部署目录
+   mkdir C:\iris-service
+   cd C:\iris-service
 
+2. 复制文件
+   - 从项目的 target/ 复制 iris-springboot-1.0.0.jar
+   - 从项目根目录复制整个 native-libs/ 目录
+   - 复制 run-windows.bat
+   - 复制 test-client.html (可选)
 
-五、验证
--------
-1. 启动后访问：http://localhost:8080/api/iris/status
-2. 打开test-client.html测试功能
-3. 查看日志确认库加载成功
+3. 验证文件结构
+   C:\iris-service\
+   ├── iris-springboot-1.0.0.jar
+   ├── native-libs\
+   │   └── windows-x64\
+   │       ├── irisenginehelper.dll
+   │       ├── libirisengine.dll
+   │       ├── [其他DLL文件]
+   │       ├── param_common.cfg
+   │       ├── param_dev.cfg
+   │       ├── sound\
+   │       └── temp\
+   ├── run-windows.bat
+   └── test-client.html
 
+3.2 配置启动脚本
+--------------
+编辑 run-windows.bat，确保路径正确：
 
-注意事项
---------
-- JNI库必须与操作系统位数匹配（x64）
-- Windows需要所有SDK的dll文件
-- Linux需要检查so文件依赖：ldd libirisengine.so
-- 确保虹膜设备已连接并有正确驱动
+@echo off
+chcp 65001 >nul
+echo Starting Iris Recognition Service...
 
+set PROJECT_DIR=%CD%
+set NATIVE_LIB_DIR=%PROJECT_DIR%\native-libs\windows-x64
+set JAR_FILE=%PROJECT_DIR%\iris-springboot-1.0.0.jar
+
+REM 添加DLL目录到PATH
+set PATH=%NATIVE_LIB_DIR%;%PATH%
+
+REM 切换到DLL目录（重要！）
+cd /d "%NATIVE_LIB_DIR%"
+
+REM 启动服务
+java -Djava.library.path="." -jar "%JAR_FILE%"
+
+pause
+
+3.3 启动服务
+-----------
+1. 双击运行 run-windows.bat
+   或在命令行执行: run-windows.bat
+
+2. 等待启动完成，看到日志：
+   "Tomcat started on port(s): 8080"
+
+3. 打开浏览器访问: http://localhost:8080/api/stream/mjpeg
+   或打开 test-client.html 进行测试
+
+3.4 设置为Windows服务（可选）
+--------------------------
+使用 NSSM 或 Windows Service Wrapper 将应用注册为服务：
+
+1. 下载 nssm: https://nssm.cc/download
+2. 安装服务:
+   nssm install IrisService "C:\iris-service\run-windows.bat"
+3. 启动服务:
+   nssm start IrisService
+
+====================================================================
+四、Linux 部署步骤
+====================================================================
+
+4.1 准备工作
+-----------
+1. 创建部署目录
+   sudo mkdir -p /opt/iris-service
+   cd /opt/iris-service
+
+2. 复制文件
+   - 上传 iris-springboot-1.0.0.jar
+   - 上传整个 native-libs/ 目录
+   - 上传 run-linux.sh
+
+3. 设置权限
+   chmod +x run-linux.sh
+   chmod +x native-libs/linux-x64/*.so
+
+4.2 配置启动脚本
+--------------
+创建或编辑 run-linux.sh：
+
+#!/bin/bash
+echo "Starting Iris Recognition Service..."
+
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+NATIVE_LIB_DIR="$PROJECT_DIR/native-libs/linux-x64"
+JAR_FILE="$PROJECT_DIR/iris-springboot-1.0.0.jar"
+
+# 添加SO目录到LD_LIBRARY_PATH
+export LD_LIBRARY_PATH="$NATIVE_LIB_DIR:$LD_LIBRARY_PATH"
+
+# 切换到SO目录
+cd "$NATIVE_LIB_DIR"
+
+# 启动服务
+java -Djava.library.path="." -jar "$JAR_FILE"
+
+4.3 配置USB设备权限
+-----------------
+1. 查找设备ID:
+   lsusb
+
+2. 创建udev规则:
+   sudo nano /etc/udev/rules.d/99-iris-device.rules
+
+3. 添加规则（根据实际设备ID修改）:
+   SUBSYSTEM=="usb", ATTRS{idVendor}=="xxxx", ATTRS{idProduct}=="xxxx", MODE="0666"
+
+4. 重新加载规则:
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+
+4.4 启动服务
+-----------
+1. 前台运行（测试）:
+   ./run-linux.sh
+
+2. 后台运行:
+   nohup ./run-linux.sh > /var/log/iris-service.log 2>&1 &
+
+3. 查看日志:
+   tail -f /var/log/iris-service.log
+
+4.5 设置为systemd服务（推荐）
+---------------------------
+1. 创建服务文件:
+   sudo nano /etc/systemd/system/iris-service.service
+
+2. 添加配置:
+   [Unit]
+   Description=Iris Recognition Service
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=root
+   WorkingDirectory=/opt/iris-service/native-libs/linux-x64
+   Environment="LD_LIBRARY_PATH=/opt/iris-service/native-libs/linux-x64"
+   ExecStart=/usr/bin/java -Djava.library.path=. -jar /opt/iris-service/iris-springboot-1.0.0.jar
+   Restart=always
+   RestartSec=10
+
+   [Install]
+   WantedBy=multi-user.target
+
+3. 启用并启动服务:
+   sudo systemctl daemon-reload
+   sudo systemctl enable iris-service
+   sudo systemctl start iris-service
+
+4. 查看状态:
+   sudo systemctl status iris-service
+
+====================================================================
+五、验证部署
+====================================================================
+
+5.1 检查服务状态
+--------------
+1. 访问健康检查端点:
+   curl http://localhost:8080/actuator/health
+   或浏览器访问: http://localhost:8080
+
+2. 查看日志中的启动信息:
+   - "IrisService initialized"
+   - "Tomcat started on port(s): 8080"
+
+5.2 测试API功能
+-------------
+1. 初始化设备:
+   curl -X POST http://localhost:8080/api/iris/init
+
+2. 获取用户列表:
+   curl http://localhost:8080/api/iris/users
+
+3. 注册用户:
+   curl -X POST "http://localhost:8080/api/iris/enroll?userId=test001"
+
+4. 识别用户:
+   curl -X POST http://localhost:8080/api/iris/identify
+
+5. 预览视频流:
+   浏览器访问: http://localhost:8080/api/stream/mjpeg
+
+5.3 使用测试客户端
+----------------
+1. 在浏览器打开 test-client.html
+2. 点击"初始化设备"
+3. 输入用户ID，点击"注册用户"
+4. 查看实时预览
+5. 点击"识别用户"进行测试
+
+====================================================================
+六、配置说明
+====================================================================
+
+6.1 端口配置
+-----------
+默认端口: 8080
+修改方法: 在启动命令中添加参数
+  java -Djava.library.path="." -jar iris-springboot-1.0.0.jar --server.port=9090
+
+6.2 日志配置
+-----------
+默认日志级别: INFO
+修改方法: 在启动命令中添加参数
+  --logging.level.cn.simbok.iris=DEBUG
+
+6.3 数据存储位置
+--------------
+用户虹膜数据存储在:
+  Windows: native-libs\windows-x64\temp\data\eyedata\
+  Linux:   native-libs/linux-x64/temp/data/eyedata/
+
+每个用户包含:
+  - left.dat  (左眼特征数据)
+  - left.jpg  (左眼图片)
+  - right.dat (右眼特征数据)
+  - right.jpg (右眼图片)
+
+备份建议: 定期备份 temp/data/eyedata/ 目录
+
+====================================================================
+七、常见问题
+====================================================================
+
+Q1: 启动时报错 "UnsatisfiedLinkError: Can't find dependent libraries"
+A1: 确保:
+    - 所有DLL/SO文件都已复制到native-libs目录
+    - Windows: PATH环境变量包含DLL目录
+    - Linux: LD_LIBRARY_PATH包含SO目录
+    - 工作目录是native-libs/windows-x64或linux-x64
+
+Q2: 初始化设备失败
+A2: 检查:
+    - 设备是否正确连接
+    - 设备驱动是否已安装（Windows）
+    - USB权限是否正确配置（Linux）
+    - param_common.cfg和param_dev.cfg文件是否存在
+
+Q3: 预览视频不显示
+A3: 解决方法:
+    - 确保已初始化设备
+    - 预览只在执行注册/识别操作时显示
+    - 检查浏览器控制台是否有错误
+    - 确认MJPEG URL正确: http://localhost:8080/api/stream/mjpeg
+
+Q4: 注册时报错 "ALREADY_RUN"
+A4: 当前有操作正在执行，点击"停止操作"后再试
+
+Q5: Linux下无法访问USB设备
+A5: 执行:
+    - sudo chmod 666 /dev/bus/usb/xxx/xxx
+    - 或配置udev规则（见4.3节）
+
+Q6: 服务占用内存过高
+A6: 添加JVM参数限制内存:
+    -Xmx512m -Xms256m
+
+Q7: 端口8080已被占用
+A7: 修改端口号（见6.1节）或停止占用8080端口的程序
+
+====================================================================
+八、API接口文档
+====================================================================
+
+8.1 设备控制
+-----------
+POST /api/iris/init              - 初始化设备
+POST /api/iris/stop              - 停止当前操作
+GET  /api/iris/device/info       - 获取设备信息
+GET  /api/iris/engine/info       - 获取引擎信息
+POST /api/iris/check-hardware    - 硬件检测
+
+8.2 用户管理
+-----------
+POST   /api/iris/enroll?userId=xxx        - 注册用户
+POST   /api/iris/identify?continuous=false - 识别用户
+GET    /api/iris/users                    - 获取用户列表
+DELETE /api/iris/users/{userId}           - 删除指定用户
+DELETE /api/iris/users                    - 删除所有用户
+
+8.3 视频流
+---------
+GET /api/stream/mjpeg            - MJPEG视频流
+
+====================================================================
+九、安全建议
+====================================================================
+
+1. 生产环境建议:
+   - 修改默认端口
+   - 配置防火墙规则
+   - 启用HTTPS（配置SSL证书）
+   - 添加API认证（如JWT）
+   - 定期备份用户数据
+
+2. 网络配置:
+   - 仅允许内网访问
+   - 限制API访问频率
+   - 配置CORS策略
+
+3. 数据安全:
+   - 加密存储虹膜特征数据
+   - 定期更新设备固件
+   - 审计API访问日志
+
+====================================================================
+十、技术支持
+====================================================================
+
+项目地址: F:\iris_springboot
+技术栈: Spring Boot 2.7.18 + JDK 1.8 + Maven
+
+如有问题请检查:
+1. 日志文件中的错误信息
+2. native-libs目录下的hs_err_pid*.log文件（JVM崩溃日志）
+3. temp/log目录下的SDK日志
+
+====================================================================

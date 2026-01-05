@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.ByteArrayOutputStream;
@@ -65,6 +67,12 @@ public class MjpegStreamController {
                             imageData[i * 3 + 1] = frameData[i * 4 + 1]; // G
                             imageData[i * 3 + 2] = frameData[i * 4 + 2]; // R
                         }
+                        
+                        // Rotate 180 degrees
+                        AffineTransform tx = AffineTransform.getScaleInstance(-1, -1);
+                        tx.translate(-width, -height);
+                        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+                        image = op.filter(image, null);
                         
                         // Convert to JPEG
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
