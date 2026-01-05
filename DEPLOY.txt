@@ -36,7 +36,13 @@
   │   │   └── temp/                      (临时文件和数据存储)
   │   │       └── data/eyedata/          (用户虹膜数据)
   │   └── linux-x64/                     (Linux 64位)
-  │       ├── *.so                       (所有SO文件)
+  │       ├── libirisenginehelper.so     (JNI封装库)
+  │       ├── libirisengine.so           (核心引擎库)
+  │       ├── libsbklic.so               (许可库)
+  │       ├── libsbkutil.so              (工具库)
+  │       ├── libxuctl.so                (控制库)
+  │       ├── libskcamera.so             (相机库)
+  │       ├── [其他依赖SO文件]
   │       ├── param_common.cfg
   │       ├── param_dev.cfg
   │       ├── sound/
@@ -123,6 +129,22 @@ pause
 ====================================================================
 四、Linux 部署步骤
 ====================================================================
+
+重要说明：
+----------
+Linux部署需要完整的PID SDK for Linux安装包，当前项目只包含JNI封装库
+(libirisenginehelper.so)。您需要：
+
+1. 获取 Linux_pidsdk_3.23.6_x64.tar.gz 或类似的Linux SDK包
+2. 解压并复制以下文件到 native-libs/linux-x64/ 目录：
+   - lib/*.so (所有SO文件，包括libirisengine.so等)
+   - param_common.cfg
+   - param_dev.cfg
+   - sound/ 目录
+   
+3. 或者联系SDK提供商获取Linux版本的完整运行库
+
+没有完整的SO文件，服务将无法在Linux上运行！
 
 4.1 准备工作
 -----------
