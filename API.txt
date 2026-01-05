@@ -1,0 +1,177 @@
+虹膜识别系统 REST API 文档
+==============================
+
+基础URL: http://localhost:8080
+
+一、基础接口 (/api/iris)
+------------------------
+
+1. POST /api/iris/init
+   初始化设备
+   响应: { success, message, code }
+
+2. POST /api/iris/enroll?userId=xxx
+   注册用户
+   参数: userId - 用户ID
+   响应: { success, message, userId }
+
+3. POST /api/iris/identify?continuous=true
+   识别用户
+   参数: continuous - 是否连续识别（默认true）
+   响应: { success, message }
+
+4. GET /api/iris/users
+   获取用户列表
+   响应: { success, users[], count }
+
+5. DELETE /api/iris/user/{userId}
+   删除指定用户
+   响应: { success, message, userId }
+
+6. POST /api/iris/stop
+   停止当前操作
+   响应: { success, message }
+
+7. GET /api/iris/status
+   获取设备状态
+   响应: { initialized }
+
+
+二、高级接口 (/api/iris/advanced)
+---------------------------------
+
+1. GET /advanced/device-info
+   获取设备详细信息
+   响应: { 
+     success, 
+     data: {
+       deviceInfo,
+       engineInfo,
+       runtimeInfo,
+       initialized
+     }
+   }
+
+2. GET /advanced/enroll-data/{userId}
+   获取用户注册详细数据
+   响应: { success, data: "JSON字符串" }
+
+3. GET /advanced/identify-data
+   获取最后一次识别详细数据
+   响应: { success, data: "JSON字符串" }
+
+4. POST /advanced/check-hardware
+   硬件自检
+   响应: { success, data: "检测结果" }
+
+5. DELETE /advanced/users/all
+   删除所有用户
+   响应: { success, message }
+
+6. POST /advanced/configure
+   动态修改配置
+   请求体: JSON配置字符串
+   响应: { success, message, code }
+
+7. POST /advanced/firmware
+   固件更新
+   请求: multipart/form-data, file参数
+   响应: { success, message }
+
+8. POST /advanced/release
+   释放资源
+   响应: { success, message }
+
+9. POST /advanced/preview/start
+   启动纯预览模式
+   响应: { success, message }
+
+10. POST /advanced/preview/stop
+    停止纯预览模式
+    响应: { success, message }
+
+
+三、视频流接口 (/stream)
+------------------------
+
+1. GET /stream/preview
+   MJPEG实时视频流
+   Content-Type: multipart/x-mixed-replace; boundary=frame
+   可直接用<img>标签或video标签播放
+
+
+四、响应格式
+-----------
+
+统一响应格式 (ApiResponse):
+{
+  "success": true/false,
+  "message": "操作结果描述",
+  "data": {},
+  "code": 0
+}
+
+错误码说明:
+0   - 成功
+1   - 未发现虹膜设备
+3   - 非法虹膜设备
+7   - 设备未初始化
+8   - 设备已初始化
+15  - 设备授权过期
+20  - 引擎未初始化
+25  - 用户ID已存在
+26  - 用户不存在
+27  - 操作已在运行
+-1  - 系统错误
+
+
+五、使用示例
+-----------
+
+1. 完整流程示例:
+
+// 初始化
+POST /api/iris/init
+
+// 查看状态
+GET /api/iris/status
+
+// 注册用户
+POST /api/iris/enroll?userId=user001
+
+// 识别用户
+POST /api/iris/identify?continuous=true
+
+// 获取用户列表
+GET /api/iris/users
+
+// 停止操作
+POST /api/iris/stop
+
+// 删除用户
+DELETE /api/iris/user/user001
+
+
+2. 前端集成:
+
+<!-- MJPEG视频流 -->
+<img src="http://localhost:8080/stream/preview" />
+
+// JavaScript调用
+fetch('http://localhost:8080/api/iris/init', {
+  method: 'POST'
+})
+.then(res => res.json())
+.then(data => console.log(data));
+
+
+六、注意事项
+-----------
+
+1. 所有接口都支持跨域（CORS）
+2. 初始化操作必须先执行
+3. 注册和识别是异步操作，会有回调结果
+4. MJPEG流需要设备初始化后才有画面
+5. 设备同时只能执行一个操作（注册或识别）
+6. 固件更新需谨慎，可能导致设备损坏
+

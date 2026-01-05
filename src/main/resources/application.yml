@@ -11,12 +11,14 @@ iris:
     common: config/param_common.cfg
     device: config/param_dev.cfg
   
-  # JNI库路径配置
+  # JNI库路径配置（独立部署，不依赖外部SDK）
   library:
     windows:
-      path: F:\iris_java\Windows SDK_3.23.6_x64_Eng\win_pidsdk_3.23.6_x64\bin
+      # 使用当前目录（启动脚本会cd到native-libs/windows-x64）
+      path: .
     linux:
-      path: /opt/iris_sdk/lib
+      # Linux使用当前目录
+      path: .
 
 logging:
   level:

@@ -37,3 +37,11 @@ build/
 ### Temp ###
 temp/
 
+### Native Libraries (binary files, not in git)
+# Keep directory structure but ignore binaries
+native-libs/**/*.dll
+native-libs/**/*.so
+native-libs/**/*.wav
+# Keep README files
+!native-libs/**/README.txt
+

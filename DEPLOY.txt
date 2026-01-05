@@ -1,0 +1,68 @@
+部署说明
+========
+
+重要：本项目已配置为独立部署，详见 STANDALONE.txt
+
+一、准备所有依赖文件（首次必须）
+-------------------------------
+运行: copy-all-dependencies.bat
+
+将自动复制：
+- 19个DLL文件到 native-libs/windows-x64/
+- 44个音频文件到 native-libs/windows-x64/sound/
+- Linux库文件到 native-libs/linux-x64/
+- 创建temp工作目录
+
+
+二、Windows部署
+--------------
+1. 复制JNI库（步骤一）
+2. 确保SDK目录存在：F:\iris_java\Windows SDK_3.23.6_x64_Eng\win_pidsdk_3.23.6_x64\bin
+   （包含所有dll文件：libirisengine.dll、EyeID.dll等）
+3. 运行：build-and-run.bat
+   或：mvn spring-boot:run
+
+
+三、Linux部署
+-------------
+1. 部署SDK库文件到 /opt/iris_sdk/lib/
+   需要的文件：
+   - libirisengine.so
+   - libirisenginehelper.so
+   - 其他依赖so文件
+
+2. 设置权限：
+   chmod +x /opt/iris_sdk/lib/*.so
+
+3. 更新 application.yml 中的路径
+
+4. 运行：
+   mvn spring-boot:run
+   或打包后运行：
+   java -Djava.library.path=/opt/iris_sdk/lib -jar iris-springboot-1.0.0.jar
+
+
+四、打包部署
+-----------
+1. 打包：mvn clean package
+2. 将target/iris-springboot-1.0.0.jar复制到目标服务器
+3. 确保目标服务器有JNI库
+4. 运行：
+   Windows: java -Djava.library.path="SDK路径" -jar iris-springboot-1.0.0.jar
+   Linux:   java -Djava.library.path=/opt/iris_sdk/lib -jar iris-springboot-1.0.0.jar
+
+
+五、验证
+-------
+1. 启动后访问：http://localhost:8080/api/iris/status
+2. 打开test-client.html测试功能
+3. 查看日志确认库加载成功
+
+
+注意事项
+--------
+- JNI库必须与操作系统位数匹配（x64）
+- Windows需要所有SDK的dll文件
+- Linux需要检查so文件依赖：ldd libirisengine.so
+- 确保虹膜设备已连接并有正确驱动
+

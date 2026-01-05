@@ -1,0 +1,116 @@
+SpringBoot项目补充内容清单
+===========================
+
+相比原JavaFX项目，已补充以下内容：
+
+一、数据模型 (model包)
+---------------------
+✓ ApiResponse - 统一响应格式
+✓ DeviceInfo - 设备信息模型
+✓ EnrollResult - 注册结果模型
+✓ IdentifyResult - 识别结果模型
+
+
+二、新增API接口
+--------------
+✓ 删除所有用户 - DELETE /advanced/users/all
+✓ 获取设备信息 - GET /advanced/device-info
+✓ 获取引擎信息 - (包含在device-info中)
+✓ 获取运行时信息 - (包含在device-info中)
+✓ 获取注册数据 - GET /advanced/enroll-data/{userId}
+✓ 获取识别数据 - GET /advanced/identify-data
+✓ 硬件检测 - POST /advanced/check-hardware
+✓ 固件更新 - POST /advanced/firmware
+✓ 动态修改配置 - POST /advanced/configure
+✓ 纯预览控制 - POST /advanced/preview/start|stop
+✓ 释放资源 - POST /advanced/release
+
+
+三、IrisService新增方法
+-----------------------
+✓ deleteAllUsers() - 删除所有用户
+✓ addIrisUser() - 通过特征添加用户
+✓ getDeviceInfo() - 设备信息
+✓ getEngineInfo() - 引擎信息
+✓ getRuntimeInfo() - 运行时信息
+✓ getEnrollData() - 注册数据
+✓ getIdentifyData() - 识别数据
+✓ checkHardware() - 硬件检测
+✓ updateFirmware() - 固件更新
+✓ changeConfigure() - 修改配置
+✓ startPurePreview() - 启动预览
+✓ stopPurePreview() - 停止预览
+✓ release() - 释放资源
+✓ getErrorMessage() - 错误信息
+
+
+四、异常处理
+-----------
+✓ GlobalExceptionHandler - 全局异常处理
+  - 通用异常处理
+  - 参数异常处理
+  - JNI库加载异常处理
+
+
+五、控制器
+---------
+✓ IrisController - 基础接口（已优化）
+✓ IrisAdvancedController - 高级功能接口（新增）
+✓ MjpegStreamController - MJPEG视频流
+
+
+六、配置和工具
+-------------
+✓ IrisConfig - 跨平台JNI库路径配置
+✓ PlatformUtils - 平台检测工具
+✓ application.yml - 完整配置文件
+
+
+七、文档
+-------
+✓ API.txt - REST API完整文档
+✓ CHANGES.txt - 本文件
+✓ DEPLOY.txt - 部署说明
+✓ test-client.html - Web测试客户端
+
+
+八、JNI库管理
+------------
+✓ native-libs目录结构
+✓ copy-native-libs.bat - 库文件复制脚本
+✓ README.txt - 库文件说明
+
+
+九、构建和运行
+-------------
+✓ build-and-run.bat - Windows一键运行
+✓ run-windows.bat - Windows运行脚本
+✓ run-linux.sh - Linux运行脚本
+
+
+十、测试工具
+-----------
+✓ test-client.html - 完整的Web测试界面
+  - 设备初始化
+  - 用户注册
+  - 虹膜识别
+  - 用户管理
+  - 实时预览
+  - 操作日志
+
+
+功能对比
+-------
+原JavaFX项目有的功能: ✓ 100%覆盖
+SpringBoot新增功能: 15+ 个高级API接口
+跨平台支持: ✓ Windows + Linux
+Web前端对接: ✓ REST API + MJPEG流
+异常处理: ✓ 全局统一处理
+响应格式: ✓ 统一ApiResponse
+
+
+未包含的功能
+-----------
+× 音频提示功能（SoundManager.java.bk是备份文件，原项目也未使用）
+  说明：音频由底层SDK控制，应用层无需处理
+

@@ -1,4 +1,4 @@
-package cn.simbok.iris.helper;
+package cn.simbok.irisHelper;
 
 public interface IrisNotificationInterface {
     int IDX_NONE = 0;
@@ -35,4 +35,3 @@ public interface IrisNotificationInterface {
 
     int play(int i);
 }
-

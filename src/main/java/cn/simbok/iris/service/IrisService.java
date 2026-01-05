@@ -1,6 +1,6 @@
 package cn.simbok.iris.service;
 
-import cn.simbok.iris.helper.IrisHelper;
+import cn.simbok.irisHelper.IrisHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,56 +34,59 @@ public class IrisService {
     
     @PostConstruct
     public void init() {
-        irisHelper = new IrisHelper();
-        log.info("IrisService initialized");
+        try {
+            irisHelper = new IrisHelper();
+            log.info("IrisService initialized (JNI library will load on first use)");
+        } catch (Exception e) {
+            log.error("Failed to initialize IrisService", e);
+            // 不抛出异常，允许服务启动，在实际使用时再报错
+        }
     }
     
     /**
-     * 初始化虹膜设备
+     * 初始化虹膜设备（同步方法，避免ForkJoinPool线程问题）
      */
-    public CompletableFuture<Integer> initDevice() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                String commonConfig = readResourceString(commonConfigPath);
-                int result = irisHelper.init(commonConfig, null, (event, param) -> {
-                    log.info("Init callback - event: {}, param: {}", event, param);
-                    if (event == 1) {
-                        log.warn("Device unplugged");
-                        initialized = false;
-                    } else if (event == 2) {
-                        log.info("Device plugged");
-                    }
+    public Integer initDevice() {
+        try {
+            String commonConfig = readResourceString(commonConfigPath);
+            int result = irisHelper.init(commonConfig, null, (event, param) -> {
+                log.info("Init callback - event: {}, param: {}", event, param);
+                if (event == 1) {
+                    log.warn("Device unplugged");
+                    initialized = false;
+                } else if (event == 2) {
+                    log.info("Device plugged");
+                }
+                return 0;
+            });
+            
+            if (result == 0) {
+                String devConfig = readResourceString(deviceConfigPath);
+                int devResult = irisHelper.loadDevParams(devConfig);
+                if (devResult != 0) {
+                    log.error("Load device params failed: {}", devResult);
+                    return devResult;
+                }
+                
+                // 启动预览
+                irisHelper.setPreview((frame, width, height) -> {
+                    latestPreviewFrame = frame;
+                    previewWidth = width;
+                    previewHeight = height;
                     return 0;
                 });
                 
-                if (result == 0) {
-                    String devConfig = readResourceString(deviceConfigPath);
-                    int devResult = irisHelper.loadDevParams(devConfig);
-                    if (devResult != 0) {
-                        log.error("Load device params failed: {}", devResult);
-                        return devResult;
-                    }
-                    
-                    // 启动预览
-                    irisHelper.setPreview((frame, width, height) -> {
-                        latestPreviewFrame = frame;
-                        previewWidth = width;
-                        previewHeight = height;
-                        return 0;
-                    });
-                    
-                    initialized = true;
-                    log.info("Device initialized successfully");
-                } else {
-                    log.error("Device init failed: {} - {}", result, irisHelper.err2str(result));
-                }
-                
-                return result;
-            } catch (Exception e) {
-                log.error("Init device error", e);
-                return -1;
+                initialized = true;
+                log.info("Device initialized successfully");
+            } else {
+                log.error("Device init failed: {} - {}", result, irisHelper.err2str(result));
             }
-        });
+            
+            return result;
+        } catch (Exception e) {
+            log.error("Init device error", e);
+            return -1;
+        }
     }
     
     /**
@@ -171,6 +174,136 @@ public class IrisService {
      */
     public int stop() {
         return irisHelper.stop();
+    }
+    
+    /**
+     * 删除所有用户
+     */
+    public int deleteAllUsers() {
+        return irisHelper.deleteAllUser();
+    }
+    
+    /**
+     * 添加虹膜用户（通过特征数据）
+     */
+    public int addIrisUser(String userId, byte[] irisLeft, byte[] irisRight) {
+        return irisHelper.addIrisUser(userId, irisLeft, irisRight);
+    }
+    
+    /**
+     * 获取设备信息
+     */
+    public String getDeviceInfo() {
+        try {
+            return irisHelper.getDeviceInfo();
+        } catch (IrisHelper.EmptyDeviceInfoException e) {
+            log.error("Get device info error", e);
+            return null;
+        }
+    }
+    
+    /**
+     * 获取引擎信息
+     */
+    public String getEngineInfo() {
+        return irisHelper.getEngineInfo();
+    }
+    
+    /**
+     * 获取运行时信息
+     */
+    public String getRuntimeInfo() {
+        return irisHelper.getRuntimeInfo();
+    }
+    
+    /**
+     * 获取注册数据
+     */
+    public String getEnrollData(String userId) {
+        return irisHelper.getEnrollData(userId);
+    }
+    
+    /**
+     * 获取识别数据
+     */
+    public String getIdentifyData() {
+        return irisHelper.getIdentifyData();
+    }
+    
+    /**
+     * 硬件检测
+     */
+    public CompletableFuture<String> checkHardware() {
+        return CompletableFuture.supplyAsync(() -> {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            
+            int result = irisHelper.checkHardware((name, res, which, finished) -> {
+                log.info("Hardware check callback - result: {}, eye: {}, finished: {}", 
+                        res, which, finished);
+                if (finished == 1) {
+                    if (res == 0) {
+                        future.complete("硬件检测通过");
+                    } else {
+                        future.complete("硬件检测失败: " + res);
+                    }
+                }
+                return 0;
+            });
+            
+            if (result != 0) {
+                return "启动硬件检测失败: " + irisHelper.err2str(result);
+            }
+            
+            try {
+                return future.get();
+            } catch (Exception e) {
+                log.error("Hardware check error", e);
+                return "硬件检测异常: " + e.getMessage();
+            }
+        });
+    }
+    
+    /**
+     * 更新固件
+     */
+    public int updateFirmware(byte[] firmware) {
+        return irisHelper.updateFirmware(firmware);
+    }
+    
+    /**
+     * 动态修改配置
+     */
+    public int changeConfigure(String config) {
+        return irisHelper.changeConfigure(config);
+    }
+    
+    /**
+     * 启动纯预览模式
+     */
+    public int startPurePreview() {
+        return irisHelper.startPurePreview();
+    }
+    
+    /**
+     * 停止纯预览模式
+     */
+    public int stopPurePreview() {
+        return irisHelper.stopPurePreview();
+    }
+    
+    /**
+     * 释放资源
+     */
+    public void release() {
+        irisHelper.release();
+        initialized = false;
+    }
+    
+    /**
+     * 获取错误码描述
+     */
+    public String getErrorMessage(int errorCode) {
+        return irisHelper.err2str(errorCode);
     }
     
     /**

@@ -1,0 +1,277 @@
+package cn.simbok.irisHelper;
+
+import static android.os.SystemClock.sleep;
+
+import android.content.Context;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.os.SystemClock;
+import android.util.ArraySet;
+import android.util.Log;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantLock;
+
+
+public class SoundManager implements IrisNotificationInterface {
+    public Context context;
+
+    public SoundManager(Context ctx) {
+        context = ctx;
+        int[] ids = {
+                IDX_NONE,
+                IDX_CAPTURE, // 1
+                IDX_STRANGER,
+                IDX_TOONEAR, // 1
+                IDX_TOOFAR, // 1
+                IDX_ZSSBJ, // 1
+                IDX_RETRY,
+                IDX_ENROLL,
+                IDX_VERIFY,
+                IDX_IDENTIFY,
+
+                IDX_UPWARD,
+                IDX_DOWNWARD,
+                IDX_LEFT,
+                IDX_RIGHT,
+
+                IDX_ENROLL_FAIL,
+                IDX_VERIFY_FAIL,
+                IDX_IDENTIFY_FAIL,
+
+                IDX_NEEDFINGERPRINT,
+                IDX_SBBPP,
+                IDX_IRISPASSED,
+                IDX_FACEPASSED,
+                IDX_FINGERPASSED,
+
+                IDX_MBZCCG,
+                IDX_MBZCSB,
+                IDX_ZWZCCG,
+                IDX_ZWZCSB,
+
+                IDX_TRUMPET,
+                IDX_CARDPASS
+        };
+
+        for (int id : ids) {
+            allowedSounds.add(id);
+        }
+
+        init();
+    }
+
+    public ArraySet<Integer> allowedSounds = new ArraySet<>();
+
+    static String TAG = SoundManager.class.getSimpleName();
+
+    public class SoundInfo {
+        int soundId;
+        long duration;
+        Boolean isMandatory;
+
+        public SoundInfo(int id, long dur, Boolean m) {
+            soundId = id;
+            duration = dur;
+            isMandatory = m;
+        }
+    }
+
+    public HashMap<Integer, SoundInfo> soundMap = new HashMap<>();
+    public SoundPool soundPool;
+    private final int POOLSIZE = 15;
+
+    private long timeoutTick = 0;
+    private int playingId = 0;
+    private int streamingId = 0;
+
+    private ArrayList<Integer> mandatoryList = new ArrayList<>(15);
+    private ReentrantLock mandatoryListLock = new ReentrantLock();
+    private int nonMandatoryId = IDX_NONE;
+
+    private Boolean isRunning = false;
+    private Thread playerThread = null;
+    private int mSoundLoadTimeout = 30;
+
+    private int mLoadedSoundCount = 0;
+    private Runnable playerProcedure = () -> {
+        playingId = IDX_NONE;
+        mandatoryList.clear();
+        nonMandatoryId = IDX_NONE;
+
+        while (mLoadedSoundCount != 0 && mSoundLoadTimeout-- > 0) {
+            sleep(100);
+        }
+
+        if (mSoundLoadTimeout <= 0) Log.w(TAG, "sounds loads timeout");
+        else Log.i(TAG, "sounds loads done. $mSoundLoadTimeout");
+
+        do {
+            playMandatory();
+
+            if (isRunning) {
+                playNonMandatory();
+            }
+
+            sleep(100);
+        } while (isRunning && playerThread == Thread.currentThread());
+
+        playMandatory();
+    };
+
+    private void playMandatory() {
+        long mandatoryInterval = 200L;
+
+        while (!mandatoryList.isEmpty()) {
+            mandatoryListLock.lock();
+            playingId = mandatoryList.get(0);
+            mandatoryList.remove(0);
+            mandatoryListLock.unlock();
+
+            try {
+                soundPool.stop(streamingId); // 停掉非必要声音
+                streamingId = soundPool.play(soundMap.get(playingId).soundId, 1f, 1f, 0, 0, 1f);
+                timeoutTick = SystemClock.elapsedRealtime() + soundMap.get(playingId).duration;
+                sleep(remainingTime()); // 播放完当前声音
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            sleep(mandatoryInterval);
+        }
+    }
+
+    private void playNonMandatory() {
+        long TIME_BETWEEN_NONMANDATRY = 1000;
+
+//        if (!isMandatory(playing_id)) {
+//            if (!isPlayingDone) {
+//                return
+//            }
+//        }
+
+        // 与之前播放的声音间隔2秒
+        if (SystemClock.elapsedRealtime() < timeoutTick + TIME_BETWEEN_NONMANDATRY) {
+            return;
+        }
+
+        if (nonMandatoryId != IDX_NONE) {
+            playingId = nonMandatoryId;
+            streamingId = soundPool.play(soundMap.get(playingId).soundId, 1f, 1f, 0, 0, 1f);
+            timeoutTick = SystemClock.elapsedRealtime() + soundMap.get(playingId).duration;
+            nonMandatoryId = IDX_NONE;
+        }
+    }
+
+    private Boolean isPlayingDone = SystemClock.elapsedRealtime() >= timeoutTick;
+
+    private long remainingTime() {
+        return timeoutTick - SystemClock.elapsedRealtime();
+    }
+
+    private Boolean isMandatory(int a_id) {
+        SoundInfo l_info = soundMap.get(a_id);
+        if (l_info == null) return false;
+        return l_info.isMandatory;
+    }
+
+    // default suffix wav
+    private int load(SoundPool pool, String name, String suffix) throws IOException {
+        mLoadedSoundCount++;
+        String loc = "voice/" + name + "." + suffix;
+        return pool.load(context.getAssets().openFd(loc), 1);
+    }
+
+    void init() {
+        soundPool = new SoundPool(POOLSIZE, AudioManager.STREAM_MUSIC, 5);
+        soundPool.setOnLoadCompleteListener((a, b, c) -> {
+            --mLoadedSoundCount;
+        });
+
+        try {
+            soundMap.put(IDX_CAPTURE, new SoundInfo(load(soundPool, "capture", "wav"), 500, true));
+            soundMap.put(IDX_STRANGER, new SoundInfo(load(soundPool, "stranger", "wav"), 800, true));
+
+            soundMap.put(IDX_TRUMPET, new SoundInfo(load(soundPool, "trumpet", "wav"), 800, false));
+
+            soundMap.put(IDX_TOOFAR, new SoundInfo(load(soundPool, "toofar", "wav"), 800, false));
+            soundMap.put(IDX_TOONEAR, new SoundInfo(load(soundPool, "toonear", "wav"), 800, false));
+            soundMap.put(IDX_ZSSBJ, new SoundInfo(load(soundPool, "zssbj", "wav"), 1500, false));
+            soundMap.put(IDX_RETRY, new SoundInfo(load(soundPool, "retry", "wav"), 1500, true));
+            soundMap.put(IDX_ENROLL, new SoundInfo(load(soundPool, "enroll", "wav"), 1500, true));
+            soundMap.put(IDX_VERIFY, new SoundInfo(load(soundPool, "verify", "wav"), 1500, true));
+            soundMap.put(IDX_IDENTIFY, new SoundInfo(load(soundPool, "identify", "wav"), 1000, true));
+            soundMap.put(IDX_UPWARD, new SoundInfo(load(soundPool, "upward", "wav"), 1500, false));
+            soundMap.put(IDX_DOWNWARD, new SoundInfo(load(soundPool, "downward", "wav"), 1500, false));
+            soundMap.put(IDX_LEFT, new SoundInfo(load(soundPool, "left", "wav"), 1500, false));
+            soundMap.put(IDX_RIGHT, new SoundInfo(load(soundPool, "right", "wav"), 1500, false));
+
+            soundMap.put(IDX_ENROLL_FAIL, soundMap.get(IDX_RETRY));
+            soundMap.put(IDX_IDENTIFY_FAIL, soundMap.get(IDX_RETRY));
+            soundMap.put(IDX_VERIFY_FAIL, soundMap.get(IDX_RETRY));
+
+            soundMap.put(IDX_CARDPASS, new SoundInfo(load(soundPool, "cardpass", "wav"), 500, true));
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void release() {
+        soundPool.release();
+    }
+
+    public void start() {
+        if (playerThread == null || !isRunning) {
+            isRunning = true;
+            playerThread = new Thread(playerProcedure);
+            playerThread.start();
+        }
+    }
+
+    public void stop() {
+        isRunning = false;
+        try {
+            playerThread.join(2000);
+            mandatoryList.clear();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void clear() {
+        nonMandatoryId = IDX_NONE;
+        mandatoryList.clear();
+    }
+
+    /**
+     * play specific sound regard allowedSounds
+     *
+     * @param a_id sound id to play
+     * @return 0 success, other fail
+     */
+    public int play(int a_id) {
+        if (!allowedSounds.contains(a_id)) {
+            return -1;
+        }
+
+        return forcePlay(a_id);
+    }
+
+    public int forcePlay(int id) {
+        if (!isRunning) {
+            return 0;
+        }
+
+        mandatoryListLock.lock();
+        if (isMandatory(id)) {
+            mandatoryList.add(id);
+        } else {
+            nonMandatoryId = id;
+        }
+        mandatoryListLock.unlock();
+
+        return 0;
+    }
+}
