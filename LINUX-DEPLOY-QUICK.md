@@ -11,17 +11,18 @@ mvn clean package -DskipTests
 
 ## 二、上传到Linux服务器
 
-需要上传以下内容到Linux服务器（例如 `/opt/iris-service`）：
+需要上传以下内容到Linux服务器（例如 `/moutum/iris-service`）：
 
 ```
-/opt/iris-service/
-├── target/iris-springboot-1.0.0.jar
-├── native-libs/linux-x64/
-│   ├── *.so (所有SO文件)
-│   ├── param_common.cfg
-│   ├── param_dev.cfg
-│   ├── sound/
-│   └── temp/
+/moutum/iris-service/
+├── iris-springboot-1.0.0.jar
+├── native-libs/
+│   └── linux-x64/
+│       ├── *.so (所有SO文件)
+│       ├── param_common.cfg
+│       ├── param_dev.cfg
+│       ├── sound/
+│       └── temp/
 ├── run-linux.sh
 └── iris-service.service (可选)
 ```
@@ -29,30 +30,31 @@ mvn clean package -DskipTests
 使用scp上传：
 
 ```bash
-# 打包
+# 打包（先复制jar到根目录）
 cd F:\iris_springboot
-tar -czf iris-service.tar.gz target/iris-springboot-1.0.0.jar native-libs/linux-x64 run-linux.sh iris-service.service
+copy target\iris-springboot-1.0.0.jar .
+tar -czf iris-service.tar.gz iris-springboot-1.0.0.jar native-libs/linux-x64 run-linux.sh iris-service.service
 
 # 上传
-scp iris-service.tar.gz user@server:/opt/
+scp iris-service.tar.gz user@server:/moutum/
 
 # 在服务器上解压
 ssh user@server
-cd /opt
-tar -xzf iris-service.tar.gz
-mv iris-service.tar.gz iris-service/
+cd /moutum
+mkdir iris-service
+tar -xzf iris-service.tar.gz -C iris-service/
+cd iris-service
 ```
 
 ## 三、配置权限
 
 ```bash
-cd /opt/iris-service
+cd /moutum/iris-service
 
-# 设置脚本执行权限
+# 首次运行需要给脚本执行权限（脚本会自动设置SO文件权限）
 chmod +x run-linux.sh
-chmod +x native-libs/linux-x64/*.so
 
-# 配置USB设备权限
+# 配置USB设备权限（如需要）
 sudo nano /etc/udev/rules.d/99-iris-device.rules
 ```
 
@@ -72,7 +74,7 @@ sudo udevadm trigger
 ## 四、测试运行
 
 ```bash
-cd /opt/iris-service
+cd /moutum/iris-service
 ./run-linux.sh
 ```
 
@@ -131,10 +133,10 @@ sudo journalctl -u iris-service -f
 
 ```bash
 # 后台运行
-nohup ./run-linux.sh > /var/log/iris-service.log 2>&1 &
+nohup ./run-linux.sh > /moutum/iris-service/iris-service.log 2>&1 &
 
 # 查看日志
-tail -f /var/log/iris-service.log
+tail -f /moutum/iris-service/iris-service.log
 
 # 查看进程
 ps aux | grep iris-springboot
@@ -180,7 +182,7 @@ sudo service iptables save
 ### 问题1: SO文件找不到
 
 ```bash
-cd /opt/iris-service/native-libs/linux-x64
+cd /moutum/iris-service/native-libs/linux-x64
 ldd libirisenginehelper.so
 # 检查是否有 "not found"
 ```
@@ -221,10 +223,10 @@ free -h  # 查看内存
 sudo journalctl -u iris-service -f
 
 # 后台运行
-tail -f /var/log/iris-service.log
+tail -f /moutum/iris-service/iris-service.log
 
 # SDK日志
-tail -f /opt/iris-service/native-libs/linux-x64/temp/log/*.log
+tail -f /moutum/iris-service/native-libs/linux-x64/temp/log/*.log
 ```
 
 ### 数据备份
@@ -232,10 +234,10 @@ tail -f /opt/iris-service/native-libs/linux-x64/temp/log/*.log
 ```bash
 # 备份用户数据
 tar -czf iris-data-$(date +%Y%m%d).tar.gz \
-    /opt/iris-service/native-libs/linux-x64/temp/data/eyedata
+    /moutum/iris-service/native-libs/linux-x64/temp/data/eyedata
 
 # 定期清理日志
-find /opt/iris-service/native-libs/linux-x64/temp/log -name "*.log" -mtime +7 -delete
+find /moutum/iris-service/native-libs/linux-x64/temp/log -name "*.log" -mtime +7 -delete
 ```
 
 ### 性能监控
@@ -248,7 +250,8 @@ top -p $(pgrep -f iris-springboot)
 netstat -an | grep 8084
 
 # 磁盘使用
-df -h /opt/iris-service
+du -sh /moutum/iris-service
+df -h /moutum
 ```
 
 ## 十一、常用命令总结

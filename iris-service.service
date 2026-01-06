@@ -1,6 +1,6 @@
 [Unit]
 Description=Iris Recognition Service
-Documentation=file:///opt/iris-service/README.md
+Documentation=file:///moutum/iris-service/README.md
 After=network.target
 
 [Service]
@@ -9,17 +9,18 @@ User=root
 Group=root
 
 # 工作目录必须是native-libs/linux-x64
-WorkingDirectory=/opt/iris-service/native-libs/linux-x64
+WorkingDirectory=/moutum/iris-service/native-libs/linux-x64
 
 # 设置环境变量
-Environment="LD_LIBRARY_PATH=/opt/iris-service/native-libs/linux-x64"
+Environment="LD_LIBRARY_PATH=/moutum/iris-service/native-libs/linux-x64"
+Environment="LD_PRELOAD=/moutum/iris-service/native-libs/linux-x64/libirisengine.so:/moutum/iris-service/native-libs/linux-x64/libsbklic.so:/moutum/iris-service/native-libs/linux-x64/libsbkutil.so"
 Environment="JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
 
 # 启动命令
 ExecStart=/usr/bin/java -Djava.library.path=. \
     -Xmx512m \
     -Xms256m \
-    -jar /opt/iris-service/target/iris-springboot-1.0.0.jar
+    -jar /moutum/iris-service/iris-springboot-1.0.0.jar
 
 # 重启策略
 Restart=always
@@ -39,11 +40,11 @@ WantedBy=multi-user.target
 # 安装说明：
 # ========================================
 # 
-# 1. 修改本文件中的路径：
-#    - WorkingDirectory: 实际部署路径
-#    - LD_LIBRARY_PATH: 实际SO库路径
-#    - JAVA_HOME: 实际JDK路径
-#    - ExecStart中的jar路径
+# 1. 根据实际部署路径修改：
+#    - WorkingDirectory: /moutum/iris-service/native-libs/linux-x64
+#    - LD_LIBRARY_PATH: /moutum/iris-service/native-libs/linux-x64
+#    - JAVA_HOME: 实际JDK路径（如需要）
+#    - ExecStart中的jar路径: /moutum/iris-service/iris-springboot-1.0.0.jar
 #
 # 2. 复制到systemd目录：
 #    sudo cp iris-service.service /etc/systemd/system/

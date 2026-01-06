@@ -11,13 +11,13 @@ iris:
     common: config/param_common.cfg
     device: config/param_dev.cfg
 
-  # JNI库路径配置（独立部署，不依赖外部SDK）
+  # JNI库路径配置（自动根据操作系统选择）
+  # 启动脚本会将工作目录切换到对应平台目录，因为DLL需要相对路径访问sound/temp等资源
+  # 这里配置为"."表示当前工作目录
   library:
     windows:
-      # 使用当前目录（启动脚本会cd到native-libs/windows-x64）
       path: .
     linux:
-      # Linux使用当前目录
       path: .
 
 logging:

@@ -26,7 +26,7 @@
 ====================================================================
 
 必需文件：
-  ├── iris-springboot-1.0.0.jar         (Spring Boot应用)
+  ├── iris-springboot-1.0.0.jar         (Spring Boot应用 - 从target/复制)
   ├── native-libs/                       (原生库目录)
   │   ├── windows-x64/                   (Windows 64位)
   │   │   ├── *.dll                      (所有DLL文件，约20-30个)
@@ -62,14 +62,17 @@
    cd C:\iris-service
 
 2. 复制文件
-   - 从项目的 target/ 复制 iris-springboot-1.0.0.jar
-   - 从项目根目录复制整个 native-libs/ 目录
-   - 复制 run-windows.bat
+   - 从项目根目录复制整个项目文件夹到 C:\iris-service
+   或者：
+   - 复制 target/ 目录（包含iris-springboot-1.0.0.jar）
+   - 复制 native-libs/ 目录
+   - 复制 build-and-run.bat 或 run-windows.bat
    - 复制 test-client.html (可选)
 
 3. 验证文件结构
    C:\iris-service\
-   ├── iris-springboot-1.0.0.jar
+   ├── target\
+   │   └── iris-springboot-1.0.0.jar
    ├── native-libs\
    │   └── windows-x64\
    │       ├── irisenginehelper.dll
@@ -79,31 +82,21 @@
    │       ├── param_dev.cfg
    │       ├── sound\
    │       └── temp\
-   ├── run-windows.bat
+   ├── build-and-run.bat
    └── test-client.html
 
-3.2 配置启动脚本
---------------
-编辑 run-windows.bat，确保路径正确：
+3.2 启动服务
+-----------
+方式1：使用 build-and-run.bat（推荐）
+   双击运行或命令行执行: build-and-run.bat
 
-@echo off
-chcp 65001 >nul
-echo Starting Iris Recognition Service...
+方式2：使用 run-windows.bat
+   双击运行或命令行执行: run-windows.bat
 
-set PROJECT_DIR=%CD%
-set NATIVE_LIB_DIR=%PROJECT_DIR%\native-libs\windows-x64
-set JAR_FILE=%PROJECT_DIR%\iris-springboot-1.0.0.jar
-
-REM 添加DLL目录到PATH
-set PATH=%NATIVE_LIB_DIR%;%PATH%
-
-REM 切换到DLL目录（重要！）
-cd /d "%NATIVE_LIB_DIR%"
-
-REM 启动服务
-java -Djava.library.path="." -jar "%JAR_FILE%"
-
-pause
+这两个脚本会自动：
+- 设置DLL路径
+- 切换到正确的工作目录
+- 启动Spring Boot服务
 
 3.3 启动服务
 -----------
@@ -149,17 +142,23 @@ Linux部署需要完整的PID SDK for Linux安装包，当前项目只包含JNI�
 4.1 准备工作
 -----------
 1. 创建部署目录
-   sudo mkdir -p /opt/iris-service
-   cd /opt/iris-service
+   sudo mkdir -p /moutum/iris-service
+   cd /moutum/iris-service
 
-2. 复制文件
-   - 上传 iris-springboot-1.0.0.jar
+2. 复制文件（从target/复制jar到根目录，与native-libs平级）
+   - 上传 iris-springboot-1.0.0.jar（项目根目录）
    - 上传整个 native-libs/ 目录
    - 上传 run-linux.sh
 
-3. 设置权限
+3. 验证文件结构
+   /moutum/iris-service/
+   ├── iris-springboot-1.0.0.jar
+   ├── native-libs/linux-x64/
+   └── run-linux.sh
+
+4. 设置启动脚本权限（首次）
    chmod +x run-linux.sh
-   chmod +x native-libs/linux-x64/*.so
+   # SO文件权限会由脚本自动设置
 
 4.2 配置启动脚本
 --------------
@@ -202,32 +201,19 @@ java -Djava.library.path="." -jar "$JAR_FILE"
    ./run-linux.sh
 
 2. 后台运行:
-   nohup ./run-linux.sh > /var/log/iris-service.log 2>&1 &
+   nohup ./run-linux.sh > /moutum/iris-service/iris-service.log 2>&1 &
 
 3. 查看日志:
-   tail -f /var/log/iris-service.log
+   tail -f /moutum/iris-service/iris-service.log
 
 4.5 设置为systemd服务（推荐）
 ---------------------------
-1. 创建服务文件:
-   sudo nano /etc/systemd/system/iris-service.service
+1. 编辑并复制服务文件:
+   - 项目中已包含 iris-service.service 模板
+   - 路径已配置为 /moutum/iris-service
 
-2. 添加配置:
-   [Unit]
-   Description=Iris Recognition Service
-   After=network.target
-
-   [Service]
-   Type=simple
-   User=root
-   WorkingDirectory=/opt/iris-service/native-libs/linux-x64
-   Environment="LD_LIBRARY_PATH=/opt/iris-service/native-libs/linux-x64"
-   ExecStart=/usr/bin/java -Djava.library.path=. -jar /opt/iris-service/iris-springboot-1.0.0.jar
-   Restart=always
-   RestartSec=10
-
-   [Install]
-   WantedBy=multi-user.target
+2. 安装服务:
+   sudo cp iris-service.service /etc/systemd/system/
 
 3. 启用并启动服务:
    sudo systemctl daemon-reload

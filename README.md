@@ -71,13 +71,20 @@ iris_springboot/
 ├── src/main/resources/
 │   ├── application.yml      # 配置文件
 │   └── config/              # SDK配置文件
+├── target/                  # Maven构建输出
+│   └── iris-springboot-1.0.0.jar
 ├── native-libs/             # 原生库
 │   ├── windows-x64/         # Windows DLL
 │   └── linux-x64/           # Linux SO
-├── build-and-run.bat        # Windows启动脚本
+├── build-and-run.bat        # Windows构建+启动脚本
 ├── run-linux.sh             # Linux启动脚本
 ├── test-client.html         # 测试客户端
 └── DEPLOY.txt               # 详细部署文档
+```
+
+**部署说明：**
+- **Windows**: 保持target目录结构，直接运行 build-and-run.bat
+- **Linux**: 将 target/iris-springboot-1.0.0.jar 复制到根目录与native-libs平级
 ```
 
 ## 数据存储
