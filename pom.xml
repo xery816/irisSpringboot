@@ -21,6 +21,8 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javacv.version>1.5.9</javacv.version>
+        <opencv.version>4.7.0</opencv.version>
     </properties>
 
     <dependencies>
@@ -35,6 +37,20 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- JavaCV for camera access -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>${javacv.version}</version>
+        </dependency>
+        
+        <!-- OpenCV platform (Linux native libraries) -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>opencv-platform</artifactId>
+            <version>${opencv.version}-${javacv.version}</version>
         </dependency>
 
         <!-- Spring Boot Test -->
