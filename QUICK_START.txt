@@ -6,10 +6,10 @@
 
 1. 复制依赖
    双击运行: copy-all-dependencies.bat
-   
+
 2. 检查完整性
    双击运行: CHECK_DEPENDENCIES.bat
-   
+
 3. 启动项目
    双击运行: build-and-run.bat
 
@@ -29,7 +29,7 @@
 
 测试项目
 -------
-1. 启动后访问: http://localhost:8080
+1. 启动后访问: http://localhost:8084
 2. 打开: test-client.html
 3. 点击"初始化设备"
 4. 开始使用注册和识别功能

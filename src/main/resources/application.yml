@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8084
 
 spring:
   application:
@@ -10,7 +10,7 @@ iris:
   config:
     common: config/param_common.cfg
     device: config/param_dev.cfg
-  
+
   # JNI库路径配置（独立部署，不依赖外部SDK）
   library:
     windows:

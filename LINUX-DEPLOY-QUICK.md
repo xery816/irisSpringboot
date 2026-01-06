@@ -79,7 +79,7 @@ cd /opt/iris-service
 看到以下信息表示启动成功：
 
 ```
-Tomcat started on port(s): 8080 (http)
+Tomcat started on port(s): 8084 (http)
 Started IrisApplication
 ```
 
@@ -91,13 +91,13 @@ Started IrisApplication
 
 ```bash
 # 测试服务健康
-curl http://localhost:8080/actuator/health
+curl http://localhost:8084/actuator/health
 
 # 初始化设备
-curl -X POST http://localhost:8080/api/iris/init
+curl -X POST http://localhost:8084/api/iris/init
 
 # 查看用户列表
-curl http://localhost:8080/api/iris/users
+curl http://localhost:8084/api/iris/users
 ```
 
 ## 六、配置为系统服务（推荐）
@@ -145,19 +145,19 @@ kill $(ps aux | grep 'iris-springboot' | grep -v grep | awk '{print $2}')
 
 ## 七、防火墙配置
 
-如需外网访问，开放8080端口：
+如需外网访问，开放8084端口：
 
 ```bash
 # Ubuntu/Debian (ufw)
-sudo ufw allow 8080/tcp
+sudo ufw allow 8084/tcp
 sudo ufw reload
 
 # CentOS/RHEL (firewalld)
-sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --permanent --add-port=8084/tcp
 sudo firewall-cmd --reload
 
 # 或者使用iptables
-sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 8084 -j ACCEPT
 sudo service iptables save
 ```
 
@@ -165,12 +165,12 @@ sudo service iptables save
 
 1. 访问Web界面：
    ```
-   http://服务器IP:8080
+   http://服务器IP:8084
    ```
 
 2. 测试视频流：
    ```
-   http://服务器IP:8080/api/stream/mjpeg
+   http://服务器IP:8084/api/stream/mjpeg
    ```
 
 3. 上传test-client.html到服务器，通过浏览器访问
@@ -199,7 +199,7 @@ ls -l /dev/bus/usb/xxx/xxx  # 检查权限
 ### 问题3: 端口被占用
 
 ```bash
-sudo netstat -tulpn | grep 8080
+sudo netstat -tulpn | grep 8084
 ```
 
 解决：修改application.yml中的端口或停止占用端口的进程
@@ -245,7 +245,7 @@ find /opt/iris-service/native-libs/linux-x64/temp/log -name "*.log" -mtime +7 -d
 top -p $(pgrep -f iris-springboot)
 
 # 网络连接
-netstat -an | grep 8080
+netstat -an | grep 8084
 
 # 磁盘使用
 df -h /opt/iris-service
@@ -276,7 +276,7 @@ sudo systemctl restart iris-service
 
 ## 十二、安全建议
 
-1. 修改默认端口8080
+1. 修改默认端口8084
 2. 配置防火墙，仅允许必要的IP访问
 3. 启用HTTPS（配置SSL证书）
 4. 定期更新系统和JDK

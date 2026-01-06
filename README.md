@@ -28,8 +28,8 @@ chmod +x run-linux.sh
 ## 测试
 
 打开浏览器访问 `test-client.html` 或直接访问：
-- 服务地址: http://localhost:8080
-- 视频流: http://localhost:8080/api/stream/mjpeg
+- 服务地址: http://localhost:8084
+- 视频流: http://localhost:8084/api/stream/mjpeg
 
 ## 主要功能
 
@@ -107,7 +107,7 @@ eyedata/
 1. **工作目录**: 应用必须在 `native-libs/{platform}` 目录下运行
 2. **预览显示**: 预览视频仅在执行注册/识别操作时显示
 3. **图像旋转**: 预览图像已自动旋转180度
-4. **端口配置**: 默认8080端口，可通过 `--server.port=9090` 修改
+4. **端口配置**: 默认8084端口，可通过 `--server.port=9090` 修改
 
 ## 详细文档
 

@@ -46,7 +46,7 @@ echo ""
 
 # 启动服务
 echo "Starting Iris Recognition Service..."
-echo "Service will be available at: http://localhost:8080"
+echo "Service will be available at: http://localhost:8084"
 echo "Press Ctrl+C to stop the service"
 echo ""
 echo "========================================"

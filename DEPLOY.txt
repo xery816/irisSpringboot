@@ -111,9 +111,9 @@ pause
    或在命令行执行: run-windows.bat
 
 2. 等待启动完成，看到日志：
-   "Tomcat started on port(s): 8080"
+   "Tomcat started on port(s): 8084"
 
-3. 打开浏览器访问: http://localhost:8080/api/stream/mjpeg
+3. 打开浏览器访问: http://localhost:8084/api/stream/mjpeg
    或打开 test-client.html 进行测试
 
 3.4 设置为Windows服务（可选）
@@ -141,7 +141,7 @@ Linux部署需要完整的PID SDK for Linux安装包，当前项目只包含JNI�
    - param_common.cfg
    - param_dev.cfg
    - sound/ 目录
-   
+
 3. 或者联系SDK提供商获取Linux版本的完整运行库
 
 没有完整的SO文件，服务将无法在Linux上运行！
@@ -244,29 +244,29 @@ java -Djava.library.path="." -jar "$JAR_FILE"
 5.1 检查服务状态
 --------------
 1. 访问健康检查端点:
-   curl http://localhost:8080/actuator/health
-   或浏览器访问: http://localhost:8080
+   curl http://localhost:8084/actuator/health
+   或浏览器访问: http://localhost:8084
 
 2. 查看日志中的启动信息:
    - "IrisService initialized"
-   - "Tomcat started on port(s): 8080"
+   - "Tomcat started on port(s): 8084"
 
 5.2 测试API功能
 -------------
 1. 初始化设备:
-   curl -X POST http://localhost:8080/api/iris/init
+   curl -X POST http://localhost:8084/api/iris/init
 
 2. 获取用户列表:
-   curl http://localhost:8080/api/iris/users
+   curl http://localhost:8084/api/iris/users
 
 3. 注册用户:
-   curl -X POST "http://localhost:8080/api/iris/enroll?userId=test001"
+   curl -X POST "http://localhost:8084/api/iris/enroll?userId=test001"
 
 4. 识别用户:
-   curl -X POST http://localhost:8080/api/iris/identify
+   curl -X POST http://localhost:8084/api/iris/identify
 
 5. 预览视频流:
-   浏览器访问: http://localhost:8080/api/stream/mjpeg
+   浏览器访问: http://localhost:8084/api/stream/mjpeg
 
 5.3 使用测试客户端
 ----------------
@@ -282,7 +282,7 @@ java -Djava.library.path="." -jar "$JAR_FILE"
 
 6.1 端口配置
 -----------
-默认端口: 8080
+默认端口: 8084
 修改方法: 在启动命令中添加参数
   java -Djava.library.path="." -jar iris-springboot-1.0.0.jar --server.port=9090
 
@@ -329,7 +329,7 @@ A3: 解决方法:
     - 确保已初始化设备
     - 预览只在执行注册/识别操作时显示
     - 检查浏览器控制台是否有错误
-    - 确认MJPEG URL正确: http://localhost:8080/api/stream/mjpeg
+    - 确认MJPEG URL正确: http://localhost:8084/api/stream/mjpeg
 
 Q4: 注册时报错 "ALREADY_RUN"
 A4: 当前有操作正在执行，点击"停止操作"后再试
@@ -343,8 +343,8 @@ Q6: 服务占用内存过高
 A6: 添加JVM参数限制内存:
     -Xmx512m -Xms256m
 
-Q7: 端口8080已被占用
-A7: 修改端口号（见6.1节）或停止占用8080端口的程序
+Q7: 端口8084已被占用
+A7: 修改端口号（见6.1节）或停止占用8084端口的程序
 
 ====================================================================
 八、API接口文档

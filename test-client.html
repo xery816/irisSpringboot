@@ -94,7 +94,7 @@
 </head>
 <body>
     <h1>虹膜识别系统测试客户端</h1>
-    
+
     <div class="container">
         <div class="panel">
             <h3>设备控制</h3>
@@ -102,24 +102,24 @@
             <button onclick="stop()">停止操作</button>
             <button onclick="getStatus()">获取状态</button>
             <button onclick="checkHardware()">硬件检测</button>
-            
+
             <h3>用户管理</h3>
             <input type="text" id="userId" placeholder="输入用户ID" style="width: 200px;">
             <br>
             <button onclick="enroll()">注册用户</button>
             <button onclick="identify()">识别用户</button>
             <button onclick="refreshUsers()">刷新列表</button>
-            
+
             <h4>用户列表</h4>
             <div class="user-list" id="userList">暂无用户</div>
         </div>
-        
+
         <div class="panel">
             <h3>实时预览 (MJPEG)</h3>
-            <img id="preview" src="http://localhost:8080/api/stream/mjpeg" alt="实时预览">
+            <img id="preview" src="http://localhost:8084/api/stream/mjpeg" alt="实时预览">
         </div>
     </div>
-    
+
     <div class="panel" style="margin-top: 20px;">
         <h3>操作日志</h3>
         <button onclick="clearLog()">清空日志</button>
@@ -127,8 +127,8 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080/api/iris';
-        
+        const API_BASE = 'http://localhost:8084/api/iris';
+
         function log(message, isError = false) {
             const logDiv = document.getElementById('log');
             const time = new Date().toLocaleTimeString();
@@ -136,11 +136,11 @@
             logDiv.innerHTML += `<span class="${className}">[${time}] ${message}</span><br>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
-        
+
         function clearLog() {
             document.getElementById('log').innerHTML = '';
         }
-        
+
         async function init() {
             log('正在初始化设备...');
             try {
@@ -154,14 +154,14 @@
                 log(`初始化失败: ${error.message}`, true);
             }
         }
-        
+
         async function enroll() {
             const userId = document.getElementById('userId').value;
             if (!userId) {
                 alert('请输入用户ID');
                 return;
             }
-            
+
             log(`正在注册用户: ${userId}...`);
             try {
                 const response = await fetch(`${API_BASE}/enroll?userId=${userId}`, { method: 'POST' });
@@ -174,7 +174,7 @@
                 log(`注册失败: ${error.message}`, true);
             }
         }
-        
+
         async function identify() {
             log('正在识别用户...');
             try {
@@ -189,7 +189,7 @@
                 log(`识别失败: ${error.message}`, true);
             }
         }
-        
+
         async function stop() {
             log('正在停止当前操作...');
             try {
@@ -200,18 +200,18 @@
                 log(`停止失败: ${error.message}`, true);
             }
         }
-        
+
         async function refreshUsers() {
             log('正在刷新用户列表...');
             try {
                 const response = await fetch(`${API_BASE}/users`);
                 const data = await response.json();
-                
+
                 const userListDiv = document.getElementById('userList');
                 if (data.success && data.data && data.data.length > 0) {
-                    userListDiv.innerHTML = data.data.map(user => 
+                    userListDiv.innerHTML = data.data.map(user =>
                         `<div class="user-item" onclick="selectUser('${user}')">
-                            ${user} 
+                            ${user}
                             <button onclick="event.stopPropagation(); deleteUser('${user}')" style="float: right; padding: 2px 8px; margin: 0;">删除</button>
                         </div>`
                     ).join('');
@@ -224,17 +224,17 @@
                 log(`刷新用户列表失败: ${error.message}`, true);
             }
         }
-        
+
         function selectUser(userId) {
             document.getElementById('userId').value = userId;
             log(`已选择用户: ${userId}`);
         }
-        
+
         async function deleteUser(userId) {
             if (!confirm(`确定要删除用户 ${userId} 吗？`)) {
                 return;
             }
-            
+
             log(`正在删除用户: ${userId}...`);
             try {
                 const response = await fetch(`${API_BASE}/users/${userId}`, { method: 'DELETE' });
@@ -247,7 +247,7 @@
                 log(`删除失败: ${error.message}`, true);
             }
         }
-        
+
         async function getStatus() {
             log('正在获取设备信息...');
             try {
@@ -256,7 +256,7 @@
                 if (deviceData.success) {
                     log(`设备信息: ${deviceData.data}`);
                 }
-                
+
                 const engineResponse = await fetch(`${API_BASE}/engine/info`);
                 const engineData = await engineResponse.json();
                 if (engineData.success) {
@@ -266,7 +266,7 @@
                 log(`获取状态失败: ${error.message}`, true);
             }
         }
-        
+
         async function checkHardware() {
             log('正在进行硬件检测...');
             try {
@@ -277,7 +277,7 @@
                 log(`硬件检测失败: ${error.message}`, true);
             }
         }
-        
+
         // 页面加载时的初始化
         window.onload = function() {
             log('测试客户端已加载');

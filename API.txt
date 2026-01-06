@@ -1,7 +1,7 @@
 虹膜识别系统 REST API 文档
 ==============================
 
-基础URL: http://localhost:8080
+基础URL: http://localhost:8084
 
 一、基础接口 (/api/iris)
 ------------------------
@@ -42,8 +42,8 @@
 
 1. GET /advanced/device-info
    获取设备详细信息
-   响应: { 
-     success, 
+   响应: {
+     success,
      data: {
        deviceInfo,
        engineInfo,
@@ -155,10 +155,10 @@ DELETE /api/iris/user/user001
 2. 前端集成:
 
 <!-- MJPEG视频流 -->
-<img src="http://localhost:8080/stream/preview" />
+<img src="http://localhost:8084/stream/preview" />
 
 // JavaScript调用
-fetch('http://localhost:8080/api/iris/init', {
+fetch('http://localhost:8084/api/iris/init', {
   method: 'POST'
 })
 .then(res => res.json())
