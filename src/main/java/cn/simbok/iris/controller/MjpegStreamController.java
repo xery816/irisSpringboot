@@ -47,9 +47,9 @@ public class MjpegStreamController {
                 }
 
                 frameCount++;
-                if (frameCount == 1 || frameCount % 30 == 0) {
+                /*if (frameCount == 1 || frameCount % 30 == 0) {
                     log.info("Streaming frame #{}: {}x{}, size: {}", frameCount, width, height, frameData.length);
-                }
+                }*/
 
                 if (frameData != null && width > 0 && height > 0) {
                     try {

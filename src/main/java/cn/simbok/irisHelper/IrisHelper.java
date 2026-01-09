@@ -546,7 +546,7 @@ public class IrisHelper {
     private final Map<Integer, String> errCodeStr = new HashMap<Integer, String>() {
         {
             put(0, "OK");
-            put(1, "未发现虹膜设备");
+            put(1, "未发现虹膜");
             put(2, "DEV_CONNECT");
             put(3, "非法虹膜设备");
             put(4, "DEV_CAPTURE");

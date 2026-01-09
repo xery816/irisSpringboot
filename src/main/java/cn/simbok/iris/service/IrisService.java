@@ -45,9 +45,16 @@ public class IrisService {
     
     /**
      * 初始化虹膜设备（同步方法，避免ForkJoinPool线程问题）
+     * 支持幂等性：如果已经初始化，直接返回成功
      */
     public Integer initDevice() {
         try {
+            // 检查是否已经初始化
+            if (initialized) {
+                log.info("Device already initialized, skipping init");
+                return 0;
+            }
+
             String commonConfig = readResourceString(commonConfigPath);
             int result = irisHelper.init(commonConfig, null, (event, param) -> {
                 log.info("Init callback - event: {}, param: {}", event, param);
@@ -59,7 +66,7 @@ public class IrisService {
                 }
                 return 0;
             });
-            
+
             if (result == 0) {
                 String devConfig = readResourceString(deviceConfigPath);
                 int devResult = irisHelper.loadDevParams(devConfig);
@@ -67,7 +74,7 @@ public class IrisService {
                     log.error("Load device params failed: {}", devResult);
                     return devResult;
                 }
-                
+
                 // 启动预览
                 log.info("Setting up preview callback...");
                 int previewResult = irisHelper.setPreview((frame, width, height) -> {
@@ -80,16 +87,16 @@ public class IrisService {
                     return 0;
                 });
                 log.info("Preview setup result: {} - Callback registered", previewResult);
-                
+
                 // 等待第一帧（注意：预览回调只在enroll/identify等操作时才会触发）
                 log.info("Preview callback registered. Preview frames will be available during operations.");
-                
+
                 initialized = true;
                 log.info("Device initialized successfully");
             } else {
                 log.error("Device init failed: {} - {}", result, irisHelper.err2str(result));
             }
-            
+
             return result;
         } catch (Exception e) {
             log.error("Init device error", e);
