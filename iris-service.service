@@ -1,6 +1,5 @@
 [Unit]
 Description=Iris Recognition Service
-Documentation=file:///moutum/iris-service/README.md
 After=network.target
 
 [Service]
@@ -14,10 +13,14 @@ WorkingDirectory=/moutum/iris-service/native-libs/linux-x64
 # 设置环境变量
 Environment="LD_LIBRARY_PATH=/moutum/iris-service/native-libs/linux-x64"
 Environment="LD_PRELOAD=/moutum/iris-service/native-libs/linux-x64/libirisengine.so:/moutum/iris-service/native-libs/linux-x64/libsbklic.so:/moutum/iris-service/native-libs/linux-x64/libsbkutil.so"
-Environment="JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+Environment="JAVA_HOME=/moutum/jdk1.8.0_111"
+Environment="PATH=/moutum/jdk1.8.0_111/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 启动前检查并创建数据目录
+ExecStartPre=/bin/bash -c 'mkdir -p /opt/iris/data/{data/{eyedata,captured,snapshot},log} && chmod -R 755 /opt/iris'
 
 # 启动命令
-ExecStart=/usr/bin/java -Djava.library.path=. \
+ExecStart=/moutum/jdk1.8.0_111/bin/java -Djava.library.path=. \
     -Xmx512m \
     -Xms256m \
     -jar /moutum/iris-service/iris-springboot-1.0.0.jar
@@ -39,7 +42,7 @@ WantedBy=multi-user.target
 # ========================================
 # 安装说明：
 # ========================================
-# 
+#
 # 1. 根据实际部署路径修改：
 #    - WorkingDirectory: /moutum/iris-service/native-libs/linux-x64
 #    - LD_LIBRARY_PATH: /moutum/iris-service/native-libs/linux-x64
