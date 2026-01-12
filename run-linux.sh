@@ -15,6 +15,19 @@ echo "Native library directory: $NATIVE_LIB_DIR"
 echo "JAR file: $JAR_FILE"
 echo ""
 
+# 检查并创建数据目录
+DATA_DIR="/opt/iris/data"
+if [ ! -d "$DATA_DIR" ]; then
+    echo "Data directory does not exist, creating: $DATA_DIR"
+    sudo mkdir -p "$DATA_DIR"/{data/{eyedata,captured,snapshot},log}
+    sudo chown -R root:root /opt/iris
+    sudo chmod -R 755 /opt/iris
+    echo "Data directory created successfully"
+else
+    echo "Data directory exists: $DATA_DIR"
+fi
+echo ""
+
 # 自动设置权限
 echo "Setting file permissions..."
 chmod +x "$0" 2>/dev/null || true
