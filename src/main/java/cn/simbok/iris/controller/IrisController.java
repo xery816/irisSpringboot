@@ -71,18 +71,19 @@ public class IrisController {
      */
     @PostMapping("/identify")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> identify(
+            @RequestParam(required = false) String userId,
             @RequestParam(defaultValue = "false") boolean continuous) {
-        log.info("Identifying user, continuous: {}", continuous);
+        log.info("Identifying user, userId: {}, continuous: {}", userId, continuous);
         
-        return irisService.identifyUser(continuous).thenApply(message -> {
+        return irisService.identifyUser(userId, continuous).thenApply(message -> {
             Map<String, Object> response = new HashMap<>();
             response.put("success", message.contains("成功"));
             response.put("message", message);
             
             // 提取用户ID（如果识别成功）
             if (message.contains("成功") && message.contains(":")) {
-                String userId = message.substring(message.lastIndexOf(":") + 1).trim();
-                response.put("userId", userId);
+                String recognizedUserId = message.substring(message.lastIndexOf(":") + 1).trim();
+                response.put("userId", recognizedUserId);
             }
             
             return ResponseEntity.ok(response);

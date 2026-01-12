@@ -16,22 +16,22 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class IrisService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(IrisService.class);
-    
+
     private IrisHelper irisHelper;
     private volatile boolean initialized = false;
-    
+
     @Value("${iris.config.common}")
     private String commonConfigPath;
-    
+
     @Value("${iris.config.device}")
     private String deviceConfigPath;
-    
+
     private byte[] latestPreviewFrame;
     private int previewWidth;
     private int previewHeight;
-    
+
     @PostConstruct
     public void init() {
         try {
@@ -42,7 +42,7 @@ public class IrisService {
             // 不抛出异常，允许服务启动，在实际使用时再报错
         }
     }
-    
+
     /**
      * 初始化虹膜设备（同步方法，避免ForkJoinPool线程问题）
      * 支持幂等性：如果已经初始化，直接返回成功
@@ -103,16 +103,16 @@ public class IrisService {
             return -1;
         }
     }
-    
+
     /**
      * 注册用户
      */
     public CompletableFuture<String> enrollUser(String userId) {
         return CompletableFuture.supplyAsync(() -> {
             CompletableFuture<String> future = new CompletableFuture<>();
-            
+
             int result = irisHelper.enroll(userId, true, (uid, res, which, finished) -> {
-                log.info("Enroll callback - user: {}, result: {}, eye: {}, finished: {}", 
+                log.info("Enroll callback - user: {}, result: {}, eye: {}, finished: {}",
                         uid, res, which, finished);
                 if (finished == 1) {
                     if (res == 0) {
@@ -123,11 +123,11 @@ public class IrisService {
                 }
                 return 0;
             });
-            
+
             if (result != 0) {
                 return "启动注册失败: " + irisHelper.err2str(result);
             }
-            
+
             try {
                 return future.get();
             } catch (Exception e) {
@@ -136,21 +136,22 @@ public class IrisService {
             }
         });
     }
-    
+
     /**
      * 识别用户（同步方法）
      * 返回标准格式：{ success, user_id, confidence, eye, score }
+     * @param targetUserId 目标用户ID，如果为null则识别所有用户
      */
-    public java.util.Map<String, Object> identify() {
+    public java.util.Map<String, Object> identify(String targetUserId) {
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         CompletableFuture<Void> future = new CompletableFuture<>();
-        
+
         // 用于存储识别结果
         final String[] userId = new String[1];
         final int[] eye = new int[1];
-        
-        int ret = irisHelper.identify(null, false, (uid, res, which, finished) -> {
-            log.debug("Identify callback - user: {}, result: {}, eye: {}, finished: {}", 
+
+        int ret = irisHelper.identify(targetUserId, false, (uid, res, which, finished) -> {
+            log.debug("Identify callback - user: {}, result: {}, eye: {}, finished: {}",
                     uid, res, which, finished);
             if (finished == 1) {
                 if (res == 0 && uid != null) {
@@ -161,20 +162,20 @@ public class IrisService {
             }
             return 0;
         });
-        
+
         if (ret != 0) {
             result.put("success", false);
             result.put("error", "启动识别失败: " + irisHelper.err2str(ret));
             return result;
         }
-        
+
         try {
             // 等待识别完成（最多3秒）
             future.get(3, java.util.concurrent.TimeUnit.SECONDS);
-            
+
             if (userId[0] != null) {
                 result.put("success", true);
-                result.put("user_id", userId[0]);
+                result.put("userId", userId[0]);  // 使用 userId 而不是 user_id
                 result.put("eye", eye[0] == 0 ? "L" : "R");
                 result.put("confidence", 85.0); // 虹膜SDK不提供置信度，给个默认值
                 result.put("score", 0);
@@ -182,7 +183,7 @@ public class IrisService {
                 result.put("success", false);
                 result.put("error", "未检测到虹膜或识别失败");
             }
-            
+
         } catch (java.util.concurrent.TimeoutException e) {
             result.put("success", false);
             result.put("error", "识别超时");
@@ -191,19 +192,21 @@ public class IrisService {
             result.put("success", false);
             result.put("error", "识别异常: " + e.getMessage());
         }
-        
+
         return result;
     }
-    
+
     /**
      * 识别用户（异步方法，用于Controller）
+     * @param targetUserId 目标用户ID，如果为null则识别所有用户
+     * @param continuous 是否连续识别
      */
-    public CompletableFuture<String> identifyUser(boolean continuous) {
+    public CompletableFuture<String> identifyUser(String targetUserId, boolean continuous) {
         return CompletableFuture.supplyAsync(() -> {
             CompletableFuture<String> future = new CompletableFuture<>();
-            
-            int result = irisHelper.identify(null, continuous, (uid, res, which, finished) -> {
-                log.info("Identify callback - user: {}, result: {}, eye: {}, finished: {}", 
+
+            int result = irisHelper.identify(targetUserId, continuous, (uid, res, which, finished) -> {
+                log.info("Identify callback - user: {}, result: {}, eye: {}, finished: {}",
                         uid, res, which, finished);
                 if (finished == 1) {
                     if (res == 0) {
@@ -214,11 +217,11 @@ public class IrisService {
                 }
                 return 0;
             });
-            
+
             if (result != 0) {
                 return "启动识别失败: " + irisHelper.err2str(result);
             }
-            
+
             try {
                 return future.get();
             } catch (Exception e) {
@@ -227,42 +230,42 @@ public class IrisService {
             }
         });
     }
-    
+
     /**
      * 获取用户列表
      */
     public List<String> getUserList() {
         return irisHelper.getUserList();
     }
-    
+
     /**
      * 删除用户
      */
     public int deleteUser(String userId) {
         return irisHelper.deleteUser(userId);
     }
-    
+
     /**
      * 停止当前操作
      */
     public int stop() {
         return irisHelper.stop();
     }
-    
+
     /**
      * 删除所有用户
      */
     public int deleteAllUsers() {
         return irisHelper.deleteAllUser();
     }
-    
+
     /**
      * 添加虹膜用户（通过特征数据）
      */
     public int addIrisUser(String userId, byte[] irisLeft, byte[] irisRight) {
         return irisHelper.addIrisUser(userId, irisLeft, irisRight);
     }
-    
+
     /**
      * 获取设备信息
      */
@@ -274,44 +277,44 @@ public class IrisService {
             return null;
         }
     }
-    
+
     /**
      * 获取引擎信息
      */
     public String getEngineInfo() {
         return irisHelper.getEngineInfo();
     }
-    
+
     /**
      * 获取运行时信息
      */
     public String getRuntimeInfo() {
         return irisHelper.getRuntimeInfo();
     }
-    
+
     /**
      * 获取注册数据
      */
     public String getEnrollData(String userId) {
         return irisHelper.getEnrollData(userId);
     }
-    
+
     /**
      * 获取识别数据
      */
     public String getIdentifyData() {
         return irisHelper.getIdentifyData();
     }
-    
+
     /**
      * 硬件检测
      */
     public CompletableFuture<String> checkHardware() {
         return CompletableFuture.supplyAsync(() -> {
             CompletableFuture<String> future = new CompletableFuture<>();
-            
+
             int result = irisHelper.checkHardware((name, res, which, finished) -> {
-                log.info("Hardware check callback - result: {}, eye: {}, finished: {}", 
+                log.info("Hardware check callback - result: {}, eye: {}, finished: {}",
                         res, which, finished);
                 if (finished == 1) {
                     if (res == 0) {
@@ -322,11 +325,11 @@ public class IrisService {
                 }
                 return 0;
             });
-            
+
             if (result != 0) {
                 return "启动硬件检测失败: " + irisHelper.err2str(result);
             }
-            
+
             try {
                 return future.get();
             } catch (Exception e) {
@@ -335,35 +338,35 @@ public class IrisService {
             }
         });
     }
-    
+
     /**
      * 更新固件
      */
     public int updateFirmware(byte[] firmware) {
         return irisHelper.updateFirmware(firmware);
     }
-    
+
     /**
      * 动态修改配置
      */
     public int changeConfigure(String config) {
         return irisHelper.changeConfigure(config);
     }
-    
+
     /**
      * 启动纯预览模式
      */
     public int startPurePreview() {
         return irisHelper.startPurePreview();
     }
-    
+
     /**
      * 停止纯预览模式
      */
     public int stopPurePreview() {
         return irisHelper.stopPurePreview();
     }
-    
+
     /**
      * 释放资源
      */
@@ -371,33 +374,33 @@ public class IrisService {
         irisHelper.release();
         initialized = false;
     }
-    
+
     /**
      * 获取错误码描述
      */
     public String getErrorMessage(int errorCode) {
         return irisHelper.err2str(errorCode);
     }
-    
+
     /**
      * 获取最新预览帧
      */
     public byte[] getLatestPreviewFrame() {
         return latestPreviewFrame;
     }
-    
+
     public int getPreviewWidth() {
         return previewWidth;
     }
-    
+
     public int getPreviewHeight() {
         return previewHeight;
     }
-    
+
     public boolean isInitialized() {
         return initialized;
     }
-    
+
     /**
      * 读取资源文件
      */
