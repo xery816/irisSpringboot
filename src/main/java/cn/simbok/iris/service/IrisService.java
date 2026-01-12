@@ -138,7 +138,65 @@ public class IrisService {
     }
     
     /**
-     * 识别用户
+     * 识别用户（同步方法）
+     * 返回标准格式：{ success, user_id, confidence, eye, score }
+     */
+    public java.util.Map<String, Object> identify() {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        
+        // 用于存储识别结果
+        final String[] userId = new String[1];
+        final int[] eye = new int[1];
+        
+        int ret = irisHelper.identify(null, false, (uid, res, which, finished) -> {
+            log.debug("Identify callback - user: {}, result: {}, eye: {}, finished: {}", 
+                    uid, res, which, finished);
+            if (finished == 1) {
+                if (res == 0 && uid != null) {
+                    userId[0] = uid;
+                    eye[0] = which;
+                }
+                future.complete(null);
+            }
+            return 0;
+        });
+        
+        if (ret != 0) {
+            result.put("success", false);
+            result.put("error", "启动识别失败: " + irisHelper.err2str(ret));
+            return result;
+        }
+        
+        try {
+            // 等待识别完成（最多3秒）
+            future.get(3, java.util.concurrent.TimeUnit.SECONDS);
+            
+            if (userId[0] != null) {
+                result.put("success", true);
+                result.put("user_id", userId[0]);
+                result.put("eye", eye[0] == 0 ? "L" : "R");
+                result.put("confidence", 85.0); // 虹膜SDK不提供置信度，给个默认值
+                result.put("score", 0);
+            } else {
+                result.put("success", false);
+                result.put("error", "未检测到虹膜或识别失败");
+            }
+            
+        } catch (java.util.concurrent.TimeoutException e) {
+            result.put("success", false);
+            result.put("error", "识别超时");
+        } catch (Exception e) {
+            log.error("Identify error", e);
+            result.put("success", false);
+            result.put("error", "识别异常: " + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 识别用户（异步方法，用于Controller）
      */
     public CompletableFuture<String> identifyUser(boolean continuous) {
         return CompletableFuture.supplyAsync(() -> {
