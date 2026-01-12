@@ -1,6 +1,7 @@
 package cn.simbok.iris.controller;
 
 import cn.simbok.iris.service.IrisService;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 
 @RestController
@@ -82,15 +84,44 @@ public class MjpegStreamController {
                         outputStream.write(jpegData);
                         outputStream.write("\r\n".getBytes());
                         outputStream.flush();
+                    } catch (ClientAbortException e) {
+                        // 客户端主动断开连接，这是正常情况（用户关闭页面等）
+                        log.debug("Client disconnected from MJPEG stream");
+                        break;  // 跳出循环，结束流
+                    } catch (IOException e) {
+                        // 检查是否是断开的管道错误
+                        if (e.getMessage() != null && e.getMessage().contains("断开的管道")) {
+                            log.debug("Broken pipe - client disconnected");
+                            break;
+                        } else if (e.getMessage() != null && e.getMessage().contains("Broken pipe")) {
+                            log.debug("Broken pipe - client disconnected");
+                            break;
+                        } else {
+                            log.error("Error writing frame to stream", e);
+                            break;
+                        }
                     } catch (Exception e) {
                         log.error("Error converting frame", e);
+                        break;
                     }
                 }
 
                 Thread.sleep(33); // ~30 FPS
             }
+        } catch (ClientAbortException e) {
+            // 客户端主动断开，正常情况
+            log.info("MJPEG stream ended: client disconnected");
+        } catch (IOException e) {
+            // IO异常，可能是网络断开
+            if (e.getMessage() != null && (e.getMessage().contains("断开的管道") || e.getMessage().contains("Broken pipe"))) {
+                log.info("MJPEG stream ended: connection broken");
+            } else {
+                log.error("MJPEG stream IO error", e);
+            }
         } catch (Exception e) {
             log.error("MJPEG stream error", e);
+        } finally {
+            log.info("MJPEG stream closed");
         }
     }
 }
