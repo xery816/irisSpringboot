@@ -97,14 +97,20 @@ public class IrisController {
     }
     
     /**
-     * 停止当前操作
+     * 停止当前操作并释放摄像头
      */
     @PostMapping("/stop")
     public ResponseEntity<ApiResponse<Void>> stop() {
         try {
+            // 1. 先停止当前操作
             int result = irisService.stop();
+            
+            // 2. 释放摄像头资源（关键修复：确保摄像头被释放）
+            irisService.release();
+            log.info("摄像头资源已释放");
+            
             if (result == 0) {
-                return ResponseEntity.ok(ApiResponse.success("Operation stopped", null));
+                return ResponseEntity.ok(ApiResponse.success("Operation stopped and camera released", null));
             } else {
                 return ResponseEntity.ok(ApiResponse.error("Stop failed: " + irisService.getErrorMessage(result)));
             }
